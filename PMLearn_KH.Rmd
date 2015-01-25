@@ -1,0 +1,53 @@
+---
+title: "PracMLearning_25012015_KH"
+author: "Katharine Harding"
+date: "25/01/2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
+library(caret)  
+```
+Load in datasets, and make all missing data NA
+```{r}
+training <- read.csv("pml-training.csv", na.strings=c("NA","#DIV/0!",""))  
+testing <- read.csv("pml-testing.csv", na.strings=c("NA","#DIV/0!",""))  
+```  
+Include only the variables that have any useful data in the testing set (some have only NA, so will not be very useful), and also change all variables to numeric  
+```{r}
+training.cut <- subset(training, select=c(roll_belt, pitch_belt, yaw_belt, as.numeric(total_accel_belt), gyros_belt_x, gyros_belt_y, gyros_belt_z, as.numeric(accel_belt_x), as.numeric(accel_belt_y), as.numeric(accel_belt_z), as.numeric(magnet_belt_x), as.numeric(magnet_belt_y), as.numeric(magnet_belt_z), roll_arm, pitch_arm, yaw_arm, as.numeric(total_accel_arm), gyros_arm_x, gyros_arm_y, gyros_arm_z, as.numeric(accel_arm_x), as.numeric(accel_arm_y), as.numeric(accel_arm_z), as.numeric(magnet_arm_x), as.numeric(magnet_arm_y), as.numeric(magnet_arm_z), roll_dumbbell, pitch_dumbbell, yaw_dumbbell, as.numeric(total_accel_dumbbell), gyros_dumbbell_x, gyros_dumbbell_y, gyros_dumbbell_z, as.numeric(accel_dumbbell_x), as.numeric(accel_dumbbell_y), as.numeric(accel_dumbbell_z), as.numeric(magnet_dumbbell_x), as.numeric(magnet_dumbbell_y), magnet_dumbbell_z, roll_forearm, pitch_forearm, yaw_forearm, as.numeric(total_accel_forearm), gyros_forearm_x, gyros_forearm_y, gyros_forearm_z, as.numeric(accel_forearm_x), as.numeric(accel_forearm_y), as.numeric(accel_forearm_z), as.numeric(magnet_forearm_x), magnet_forearm_y, magnet_forearm_z, classe))  
+```
+Subdivide the training data into a training set and a testing set so that the model can be assessed before being applied to the final test set  
+```{r}
+inTrain <- createDataPartition(y=training.cut$classe, p=0.75, list=FALSE)  
+Train <- training.cut[inTrain,]  
+Test <- training.cut[-inTrain,]  
+dim(Train)  
+set.seed(1981)
+```
+Now build the model.  Set up training control parameter to use cross validation with 3-fold repeats  
+```{r}
+ctrl <- trainControl(method = "repeatedcv", repeats = 3)  
+```
+Build a model using the knn method to classify   
+```{r}
+model <- train(classe ~ ., data = Train, method = "knn", tuneLength = 12, trControl = ctrl)  
+```
+Try the model on "test" set (the one that was generated from the training set, not the final test set)  
+```{r}
+prediction <- predict(model, newdata=Test)  
+print(confusionMatrix(prediction, Test$classe))  
+```
+The accuracy is 87%  
+
+Set all the variables to have the same structure as the training set, and also exclude the variables with no data.  I know it's not very elegant but it works.  
+```{r}
+testing.cut <- subset(testing, select=c(roll_belt, pitch_belt, yaw_belt, as.numeric(total_accel_belt), gyros_belt_x, gyros_belt_y, gyros_belt_z, as.numeric(accel_belt_x), as.numeric(accel_belt_y), as.numeric(accel_belt_z), as.numeric(magnet_belt_x), as.numeric(magnet_belt_y), as.numeric(magnet_belt_z), roll_arm, pitch_arm, yaw_arm, as.numeric(total_accel_arm), gyros_arm_x, gyros_arm_y, gyros_arm_z, as.numeric(accel_arm_x), as.numeric(accel_arm_y), as.numeric(accel_arm_z), as.numeric(magnet_arm_x), as.numeric(magnet_arm_y), as.numeric(magnet_arm_z), roll_dumbbell, pitch_dumbbell, yaw_dumbbell, as.numeric(total_accel_dumbbell), gyros_dumbbell_x, gyros_dumbbell_y, gyros_dumbbell_z, as.numeric(accel_dumbbell_x), as.numeric(accel_dumbbell_y), as.numeric(accel_dumbbell_z), as.numeric(magnet_dumbbell_x), as.numeric(magnet_dumbbell_y), magnet_dumbbell_z, roll_forearm, pitch_forearm, yaw_forearm, as.numeric(total_accel_forearm), gyros_forearm_x, gyros_forearm_y, gyros_forearm_z, as.numeric(accel_forearm_x), as.numeric(accel_forearm_y), as.numeric(accel_forearm_z), as.numeric(magnet_forearm_x), magnet_forearm_y, magnet_forearm_z, problem_id))  
+```
+Now try the final predictions on the testing set:
+```{r}
+finalPred <- prediction <- predict(model, newdata=testing.cut)  
+print(finalPred)
+```
+and then generate the files as per the instructions on the course website, and submit them individually.  
